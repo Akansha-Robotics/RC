@@ -1,0 +1,153 @@
+#include <Wire.h>
+// Wire Library for communicating to LCD - I2C communication 
+#include <LiquidCrystal_I2C.h>
+// Library to simplify communication for LCD
+#include <Servo.h>
+// Library for controlling servo motor
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+// Sets LCD with address of 0x27 to identify LCD on I2C bus – has 16 characters and 2 lines configuration  
+Servo myServo; 
+// Sets object for servo motor control 
+
+// below function runs once when microcontroller is turned on
+// Sets all the configurations required for code 
+void setup() {
+  Serial.begin(115200);
+   // Serial communication set at 115200 baud rate – sets the rate of which computer and Arduino will transfer data to each other
+  // Learning Point: at first, this was set 9600 but was facing issue of unusual characters appearing on serial monitor so it was increased to 115200
+
+  lcd.init();
+  // For Initialize LCD
+
+  lcd.backlight();
+  // For Turning on LCD backlight
+
+  pinMode(2, OUTPUT);
+  // For LED light output connected at pin 2  
+
+  pinMode(9, OUTPUT);
+  // For water pump output connected at pin 9
+
+  myServo.attach(8);
+  // For servo motor output connected at pin 8
+}
+// Learning point: Faced an issue where the pins was getting mixed but it was resolved when proper wiring document was created and then implementation was done 
+
+// below function is the core code and runs constantly 
+void loop() {
+  int waterValue = analogRead(A0); 
+  // Sets water level variable to read from A0 pin connected to sensor
+  int lightValue = analogRead(A1); 
+  // Sets photoresistor variable to read from A1 pin connected to sensor
+  int soilMoistureValue = analogRead(A2);
+  // Sets soil moisture sensor to read from A2 pin connected to sensor
+  
+  // LCD display for water level value 
+  lcd.setCursor(0, 0);
+  // Sets position where text will start – 0 is the first character and 0 is the first line 
+  lcd.print("W:");
+  // Prints the string value == W: - To indicate water level value will be displayed here 
+  lcd.print(waterValue);
+  // Prints the actual water level value by calling waterValue variable  
+  lcd.print("   ");
+  // Clears the value displayed before and replaces it with a space character 
+
+  // Learning Point: Since new value is captured every second, the pervious value needs to clear otherwise, the value will overlap each other 
+  
+  // LCD display for light value 
+  lcd.setCursor(5, 0);
+  // Sets position where text will start - 5 means text will start displaying on 6th position – 0 means it is on first line 
+  lcd.print("L:");
+  // Prints the string value == L: - To indicate light value will be displayed here 
+  lcd.print(lightValue);
+  // Prints the actual light value by calling lightValue variable  
+  lcd.print("   ");
+  // Clears the value displayed before and replaces it with a space character
+  
+  // LCD display for soil moisture value 
+  lcd.setCursor(10, 0);
+  // Sets position where text will start - 10 means text will start displaying on 11th position – 0 means it is on first line 
+  lcd.print("S:"); 
+  // Prints the string value == S: - To indicate soil moisture value will be displayed here 
+  lcd.print(soilMoistureValue);
+  // Prints the actual soil moisture value by calling soilMoistureValue variable  
+  lcd.print("   "); 
+  // Clears the value displayed before and replaces it with a space character
+
+
+  // For printing on Serial Monitor which is shown when Laptop is connected to Arduino 
+  Serial.print("Water Level: ");
+  // For printing string value == Water Level: 
+  Serial.print(waterValue);
+  // For printing actual value from water level variable  
+  Serial.print(" | Light Level: ");
+  // For printing string value == Light Level: 
+  Serial.print(lightValue);
+  // For printing actual value from light variable  
+  Serial.print(" | Soil Moisture: ");
+  // For printing string value == Water Level: 
+  Serial.println(soilMoistureValue);
+  // For printing actual value from soil moisture level variable  
+
+  // LCD display of water level category of High Medium Low Empty – These category are set in code
+  lcd.setCursor(0, 1);
+  // Sets position where text will start - is the first character – 1 means it is on second line 
+  lcd.print("W Level: ");
+  // Prints the string value == W Level 
+
+
+  // Sets the water level category in LCD based on value received from sensor 
+  if (waterValue <= 100) {
+    // if value is less than or equal to 100 
+    digitalWrite(2, HIGH);
+    // Turn on LED light at pin 2 
+    lcd.print("Empty   ");
+    // Print string text of Empty in LCD 
+  } else if (waterValue > 100 && waterValue < 479) {
+    // if value is between 101 and 478  
+    digitalWrite(2, HIGH);
+    // Turn on LED light at pin 2 
+    lcd.print("LOW     ");
+    // Print string text of LOW in LCD 
+  } else if (waterValue >= 480 && waterValue < 549) {
+    // if value is between 480 and 548
+    digitalWrite(2, LOW); 
+    // Turn off LED light at pin 2 
+    lcd.print("MEDIUM  ");
+    // Print string text of MEDIUM in LCD 
+  } else if (waterValue >= 550) {
+    // if value is greater and equal to 550
+    digitalWrite(2, LOW); 
+    // Turn off LED light at pin 2 
+    lcd.print("HIGH    ");
+    // Print string text of HIGH in LCD 
+  }
+
+  // Moving servo motor based on light value 
+  if (lightValue > 5) {
+  // if light value is greater than 5
+    myServo.write(90);
+    // Move servo to 90 degrees 
+  } else {
+    // If light value is 5 or less than 5
+    myServo.write(0); 
+    // Move servo motor back to original position at 0 degrees 
+  }
+  // Learning point: light value in if else needs to be adjust according to environment.
+  // As when presenting in university, the value was brought down to 3 so that when torch light was placed from phone, the value would jump to 5 and move servo. 
+
+  // Turning on water pump based on soil moisture level 
+  if (soilMoistureValue > 1000) {
+    // If soil moisture is greater than 1000
+    digitalWrite(9, HIGH);
+    // Turn on water pump at pin 9 
+  } else {
+    // If soil moisture is 1000 or less than 1000
+    digitalWrite(9, LOW);
+    // Turn off water pump at pin 9
+  }
+
+  delay(1000);
+  // Repeat function every 1 second 
+}
